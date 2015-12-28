@@ -59,51 +59,52 @@ This is the central component of this library, please follow the ddl :
                  config_table = 'morrisql_report_config',
                  config_ref = 'lineplot01')
     >>> mg.to_json()
-Morris.Line({
-  "xkey": [
-    "report_date"
-  ], 
-  "element": "line-example", 
-  "labels": [
-    "metric_1", 
-    "metric_2", 
-    "Custom metric"
-  ], 
-  "ykeys": [
-    "metric_1", 
-    "metric_2", 
-    "custom_metric"
-  ], 
-  "data": [
-    {
-      "metric_1": 5, 
-      "report_date": "2015-05-31", 
-      "metric_2": 16, 
-      "custom_metric": 27
-    }, 
-    {
-      "metric_1": 5, 
-      "report_date": "2015-05-30", 
-      "metric_2": 20, 
-      "custom_metric": 25
-    }, 
-    {
-      "metric_1": 3, 
-      "report_date": "2015-05-29", 
-      "metric_2": 18, 
-      "custom_metric": 28
-    }, 
-    {
-      "metric_1": 2, 
-      "report_date": "2015-05-28", 
-      "metric_2": 19, 
-      "custom_metric": 25
-    }, 
-    {
-      "metric_1": 3, 
-      "report_date": "2015-05-1", 
-      "metric_2": 19, 
-      "custom_metric": 26
-    }
-  ]
-})
+    
+    Morris.Line({
+      "xkey": [
+        "report_date"
+      ], 
+      "element": "line-example", 
+      "labels": [
+        "metric_1", 
+        "metric_2", 
+        "Custom metric"
+      ], 
+      "ykeys": [
+        "metric_1", 
+        "metric_2", 
+        "custom_metric"
+      ], 
+      "data": [
+        {
+          "metric_1": 5, 
+          "report_date": "2015-05-31", 
+          "metric_2": 16, 
+          "custom_metric": 27
+        }, 
+        {
+          "metric_1": 5, 
+          "report_date": "2015-05-30", 
+          "metric_2": 20, 
+          "custom_metric": 25
+        }, 
+        {
+          "metric_1": 3, 
+          "report_date": "2015-05-29", 
+          "metric_2": 18, 
+          "custom_metric": 28
+        }, 
+        {
+          "metric_1": 2, 
+          "report_date": "2015-05-28", 
+          "metric_2": 19, 
+          "custom_metric": 25
+        }, 
+        {
+          "metric_1": 3, 
+          "report_date": "2015-05-1", 
+          "metric_2": 19, 
+          "custom_metric": 26
+        }
+      ]
+    })
