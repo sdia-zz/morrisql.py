@@ -13,7 +13,7 @@ class Column(object):
     _ids = count(0)
 
     def __init__(self, name = None):
-        self.idx = self._ids.next()
+        self.idx = next(self._ids)
         self.is_dim = False
 
     @property
