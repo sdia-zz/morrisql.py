@@ -3,112 +3,159 @@
 
 
 import sqlite3
-from tqdm import tqdm
+import json
 from itertools import count
 
 
-
 class Column(object):
+    
     _ids = count(0)
 
     def __init__(self, name = None):
         self.idx = self._ids.next()
-        self.name = name
-        
+        self.is_dim = False
+
+    @property
     def key(self):
         return self.name.lower().replace(' ', '_')
 
+    @classmethod
+    def reset(cls):
+        # needed if more than 1 report in same thread
+        cls._ids = count(0)
 
+        
 class Metric(Column):
+    
     def __init__(self, name, label=None):
         super(Metric, self).__init__()
         self.name = name
-        self.label = label
 
 
 class Dimension(Column):
+    
     def __init__(self, name):
         super(Dimension, self).__init__()
         self.name = name
         self.is_dim = True
 
-
-def load_config(conn, config_table, config_ref):
-    
-    # move this to settings
-    query = '''SELECT reference, 
-                      report_plot_type,
-                      report_dom_location,
-                      report_dimensions,
-                      report_metrics,
-                      report_additional_options
-               FROM {config_table}
-               WHERE reference = {config_ref}
-               LIMIT 1;
-    '''
-
-    cur = conn.cursor()
-    cur.execute(query.format(
-        config_table = config_table,
-        config_ref = config_ref
-    ))
-    res = cur.fetchone()
-
-    return dict(
-        reference = res[0],
-        report_plot_type = res[1],
-        report_dom_location = res[2],
-        report_dimensions = res[3].split("'"),
-        report_metrics = res[4].split("'"),
-        report_additional_options = res[5].split("'")
-    )
-
-
-
-
-def build_data_element(conn, table, dimensions, metrics):
-
-    cur = conn.cursor()
-    query = 'select {columns} from {table} LIMIT {limit}'
-    LIMIT = 365
-    column_objects = []
-
-    for d in dimensions:
-        column_objects.append(Dimension(name=d))
-
-    for m in metrics:
-        column_objects.append(Metric(name=m))
         
-    query = query.format(
-        table = table,
-        columns = ','.join(['"{}"'.format(co.name) for co in column_objects]),
-        limit = LIMIT
-    )
-
-    data = []
-    cur.execute(query)
-    for r in cur:
-        d = {}
-        for m in column_objects:
-            d[m.key()] = r[m.idx]
-
-        data.append(d)
-
-    return data
-
-
+class MorrisGraph(object):
     
+    data_limit = 365
+    conf_query = '''SELECT reference, 
+                           report_plot_type,
+                           report_dom_location,
+                           report_dimensions,
+                           report_metrics,
+                           report_additional_options
+                    FROM {config_table}
+                    WHERE reference = '{config_ref}'
+                    LIMIT 1;'''
+    data_query = 'SELECT {columns} FROM {table} LIMIT {data_limit}'
+    json_template = 'Morris.{report_plot_type}({data_dict})'
+    json_indent = 2
+    
+    def __init__(self, conn, report_table, config_table, config_ref):
+        self.conn = conn
+        self.report_table = report_table
+        self.config_table = config_table
+        self.config_ref = config_ref
+
+    def _load_config(self):    
+        cur = self.conn.cursor()
+
+        cur.execute(self.conf_query.format(
+            config_table = self.config_table,
+            config_ref = self.config_ref))
+        
+        res = cur.fetchone()
+        if res == None:
+            err_mess = 'No configuration found for ref. {}\n'.format(self.config_ref)
+            err_mess += 'Please verify {}'.format(self.config_table)
+            raise Exception(err_mess)
+
+        reference = res[0]
+        report_plot_type = res[1]
+        report_dom_location = res[2]
+        report_dimensions = res[3].split(",") if res[3] else []
+        report_metrics = res[4].split(",") if res[4] else []
+        report_additional_options = res[5]
+
+        # additionnal cleaning
+        report_dimensions = [d.strip() for d in report_dimensions]
+        report_metrics = [m.strip() for m in report_metrics]
+    
+        return dict(
+            reference = reference,
+            report_plot_type = report_plot_type.lower().capitalize(),
+            report_dom_location = report_dom_location,
+            report_dimensions = report_dimensions,
+            report_metrics = report_metrics,
+            report_additional_options = report_additional_options)
+
+    def _get_data_dict(self, conf):   #conn, table, dimensions, metrics):
+
+        cur = self.conn.cursor()
+        column_objects = []
+        # needed if more than 1 report in same thread
+        Column.reset()
+        for d in conf['report_dimensions']:
+            column_objects.append(Dimension(name=d))
+        for m in conf['report_metrics']:
+            column_objects.append(Metric(name=m))
+        cur.execute(
+            self.data_query.format(
+                table = self.report_table,
+                columns = ','.join(['"{}"'.format(col.name) for col in column_objects]),
+                data_limit = self.data_limit))
+        data = []
+        for r in cur:
+            d = {}
+            for m in column_objects:
+                d[m.key] = r[m.idx]
+            data.append(d)
+        return dict(
+            data = data,
+            xkey = [col.key for col in column_objects if col.is_dim],
+            ykeys = [col.key for col in column_objects if not col.is_dim],
+            labels = [col.name for col in column_objects if not col.is_dim])
+
+    def to_json(self):
+        conf = self._load_config()
+        data_dict = self._get_data_dict(conf)
+        data_dict['element'] = conf['report_dom_location']
+
+        return self.json_template.format(
+            report_plot_type = conf['report_plot_type'],
+            data_dict = json.dumps(data_dict, indent=self.json_indent))
+
 
 def main():
-    conn = sqlite3.connect('tests/test.db')
-    table = 'morrisql_report_data'
-    dimensions = ['report_date']
-    metrics = ['metric_1', 'metric_2', 'Custom metric']
-    for l in build_data_element(conn, table, dimensions, metrics):
-        print l
+    print 'Line example ....'
+    mg = MorrisGraph(
+        conn = sqlite3.connect('tests/test.db'),        
+        report_table = 'morrisql_report_line',
+        config_table = 'morrisql_report_config',
+        config_ref = 'lineplot01')
+    print mg.to_json()
+
+    print 'Bar example ....'
+    mg = MorrisGraph(
+        conn = sqlite3.connect('tests/test.db'),        
+        report_table = 'morrisql_report_bar',
+        config_table = 'morrisql_report_config',
+        config_ref = 'barplot01')
+    print mg.to_json()
+
+    print 'Donut example ....'
+    mg = MorrisGraph(
+        conn = sqlite3.connect('tests/test.db'),        
+        report_table = 'morrisql_report_donut',
+        config_table = 'morrisql_report_config',
+        config_ref = 'donutplot01')
+    print mg.to_json()
     
-
-
 
 if __name__ == '__main__':
     main()
