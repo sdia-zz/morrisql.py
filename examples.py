@@ -15,6 +15,14 @@ def main():
         config_ref = 'lineplot01')
     print mg.to_json()
 
+    print 'Area example ....'
+    mg = MorrisGraph(
+        conn = sqlite3.connect('tests/test.db'),        
+        report_table = 'morrisql_report_line',
+        config_table = 'morrisql_report_config',
+        config_ref = 'areaplot01')
+    print mg.to_json()
+
     print 'Bar example ....'
     mg = MorrisGraph(
         conn = sqlite3.connect('tests/test.db'),        

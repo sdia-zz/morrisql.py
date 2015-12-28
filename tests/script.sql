@@ -26,8 +26,7 @@ CREATE TABLE morrisql_report_donut (
 
 DROP TABLE IF EXISTS morrisql_report_config;
 CREATE TABLE morrisql_report_config (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       reference VARYING CHARACTER(255),
+       reference VARYING CHARACTER(255) PRIMARY KEY, -- or unique
        report_plot_type VARYING CHARACTER(255),
        report_dom_location VARYING CHARACTER(255),
        report_dimensions VARYING CHARACTER(255),
@@ -38,6 +37,7 @@ CREATE TABLE morrisql_report_config (
 INSERT INTO morrisql_report_config (reference, report_plot_type, report_dom_location, report_dimensions, report_metrics, report_additional_options)
 VALUES
 ('lineplot01', 'line', 'line-example', 'report_date', 'metric_1, metric_2, Custom metric', NULL),
+('areaplot01', 'area', 'area-example', 'report_date', 'metric_1, metric_2, Custom metric', NULL),
 ('barplot01', 'bar', 'bar-example', 'report_date', 'Variable_A, Variable B', NULL),
 ('donutplot01', 'donut', 'donut-example', NULL, 'Download Sales, In-Store Sales, Mail-Order Sales', NULL);
 
